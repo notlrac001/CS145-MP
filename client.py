@@ -36,7 +36,7 @@ intent_message = "Type:0;"
 o_message = "".encode()
 
 # wait for the orchestrator message (type 1) within the set number of retries
-for _ in range(MAX_RET):
+for _ in range(1):
   try:
     udp_socket_o.sendto(intent_message.encode(), (OIP,UDP_PORT_O))
     o_message, addr = udp_socket_o.recvfrom(1024)
@@ -176,7 +176,7 @@ for i in range(num_segments):
   # indicate what is being sent
   print("sending:",segments_array[i]," to ",server_address)
   
-    s_message = "".encode()
+  s_message = "".encode()
 
   # waiting for reply.
   for _ in range(MAX_RET):
@@ -187,9 +187,9 @@ for i in range(num_segments):
       response = (s_message.decode()).split(";")
       r_type = int((response[0])[5:])
       r_tid = int((response[1])[4:])
-      r_seq = int(response[2])[4:]
+      r_seq = int((response[2])[4:])
 
-      if r_type == 3 and r_tid == TID and r_seq == i 
+      if r_type == 3 and r_tid == TID and r_seq == i: 
         break
 
       # do we need to consider that a different not matching ack could be sent? tried to do that, so let's see.
