@@ -134,21 +134,29 @@ else:
 print(server_weights)
 
 ######################################## STEP 3: SENDING THE PAYLOAD ##############################
-
 # calculate the number of segments needed
 f_size = os.path.getsize(FILE)
 num_segments = math.ceil(f_size/MAX_PAYLOAD)
+num_servers = [0] * 3
 
-# Get the actual number of segments for each server
-num_server_1 = math.ceil(server_weights[0] * num_segments)
-num_server_2 = math.ceil(server_weights[1] * num_segments)
-num_server_3 = num_segments - num_server_1 - num_server_2
+num_servers[0] = math.ceil(server_weights[0] * num_segments)
+num_servers[1] = math.ceil(server_weights[1] * num_segments)
+num_servers[2] = math.ceil(server_weights[2] * num_segments)
+
+min_index = num_servers.index(min(num_servers))
+max_index = num_servers.index(max(num_servers))
+mid_index = list(set([0,1,2]) - set([min_index,max_index]))[0]
+
+# additional safety check for weights done here. since for sure max_index would be significantly 
+# more than 0.1 of the data, we prioritize the smaller weights getting the ceiling values.
+
+num_servers[max_index] = num_segments - num_servers[mid_index] - num_servers[min_index]
 
 print(f_size)
 print(num_segments)
-print(num_server_1)
-print(num_server_2)
-print(num_server_3)
+print(num_servers[0])
+print(num_servers[1])
+print(num_servers[2])
 
 segments_array = [0] * num_segments 
 
@@ -166,9 +174,9 @@ f.close
 for i in range(num_segments):
   # determine the server to send to
   server_address = ""
-  if i < num_server_1:
+  if i < num_servers[0]:
     server_address = server1[0]
-  elif i < num_server_1+num_server_2:
+  elif i < num_servers[0]+num_servers[1]:
     server_address = server2[0]
   else:
     server_address = server3[0]
@@ -192,7 +200,7 @@ for i in range(num_segments):
       if r_type == 3 and r_tid == TID and r_seq == i: 
         break
 
-      # do we need to consider that a different not matching ack could be sent? tried to do that, so let's see.
+      
     except socket.timeout:
       pass
 
