@@ -27,7 +27,7 @@ udp_socket_o = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP socket for
 
 udp_socket_o.bind(('',4650))
 
-udp_socket_o.settimeout(3.0) # this sets the 3s timeout for any message.
+
 
 ##################################### STEP 1: INTENT MESSAGE, REPLY ###############################
 
@@ -35,16 +35,14 @@ udp_socket_o.settimeout(3.0) # this sets the 3s timeout for any message.
 intent_message = "Type:0;"
 o_message = "".encode()
 
-# wait for the orchestrator message (type 1) within the set number of retries
-for _ in range(1):
-  try:
-    udp_socket_o.sendto(intent_message.encode(), (OIP,UDP_PORT_O))
-    o_message, addr = udp_socket_o.recvfrom(1024)
-    break
-  except socket.timeout:
-    pass
+# wait for the orchestrator message (type 1)
+udp_socket_o.sendto(intent_message.encode(), (OIP,UDP_PORT_O))
+o_message, addr = udp_socket_o.recvfrom(1024)
+    
+  
 
-# throw error if no more retries left and end execution
+
+# throw error and end execution if reply is blank
 if o_message.decode() == "":
   raise Exception("Orchestrator reply not received.")
 
@@ -169,7 +167,7 @@ for i in range(num_segments):
   payload = f.read(100)
   segments_array[i] = create_segment(TID,i,payload)
 f.close
-
+udp_socket_o.settimeout(3.0) # this sets the 3s timeout for any message.
 # send each of the segments
 for i in range(num_segments):
   # determine the server to send to
