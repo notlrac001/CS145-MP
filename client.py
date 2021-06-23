@@ -35,6 +35,8 @@ udp_socket_o.bind(('',4650))
 intent_message = "Type:0;"
 o_message = "".encode()
 
+
+
 # wait for the orchestrator message (type 1)
 udp_socket_o.sendto(intent_message.encode(), (OIP,UDP_PORT_O))
 o_message, addr = udp_socket_o.recvfrom(1024)
@@ -131,23 +133,23 @@ else:
 # output processed weights
 print(server_weights)
 
-######################################## STEP 3: SENDING THE PAYLOAD ##############################
-# calculate the number of segments needed
+######################################## STEP 3: SENDING THE PAYLOAD ############################## 
 f_size = os.path.getsize(FILE)
-num_segments = math.ceil(f_size/MAX_PAYLOAD)
+payload_size = MAX_PAYLOAD if f_size >= 700 else (10 if f_size >= 70 else 1) # set appropriate payload sizes to fit min weight
+num_segments = math.ceil(f_size/payload_size) # calculate the number of segments needed
 num_servers = [0] * 3
 
 num_servers[0] = math.ceil(server_weights[0] * num_segments)
 num_servers[1] = math.ceil(server_weights[1] * num_segments)
 num_servers[2] = math.ceil(server_weights[2] * num_segments)
 
-min_index = num_servers.index(min(num_servers))
-max_index = num_servers.index(max(num_servers))
+min_index = num_servers.index(min(server_weights))
+max_index = num_servers.index(max(server_weights))
 mid_index = list(set([0,1,2]) - set([min_index,max_index]))[0]
-
-# additional safety check for weights done here. since for sure max_index would be significantly 
-# more than 0.1 of the data, we prioritize the smaller weights getting the ceiling values.
-
+# For sure max_index would be significantly  more than 0.1 of the data, we prioritize the smaller weights getting the ceiling values.
+if num_segments < 5:     
+  num_servers[min_index] = 1 # Additional handling for the case when there are less than 5 segments to send, since simply using ceiling
+  num_servers[mid_index] = 1 # could cause the max_index to get nothing. Note that when less than 10 segments, weights may be off.
 num_servers[max_index] = num_segments - num_servers[mid_index] - num_servers[min_index]
 
 print(f_size)
@@ -164,8 +166,12 @@ def create_segment(tid,seq,payload):
 # divide the file into the segments
 f = open(FILE, "r", encoding="utf8")
 for i in range(num_segments):
-  payload = f.read(100)
-  segments_array[i] = create_segment(TID,i,payload)
+  rem = f_size - (num_segments-1)*payload_size
+  if rem != 0 and ((max_index == 0 and i == num_servers[0]-1) or (max_index == 1 and i == num_servers[0]+num_servers[1]-1) or (max_index == 2 and i == num_segments-1)):
+    payload = f.read(rem)
+  else:
+    payload = f.read(payload_size)
+  segments_array[i] = payload 
 f.close
 udp_socket_o.settimeout(3.0) # this sets the 3s timeout for any message.
 # send each of the segments
