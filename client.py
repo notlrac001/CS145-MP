@@ -143,11 +143,11 @@ num_servers[0] = math.ceil(server_weights[0] * num_segments)
 num_servers[1] = math.ceil(server_weights[1] * num_segments)
 num_servers[2] = math.ceil(server_weights[2] * num_segments)
 
-min_index = num_servers.index(min(server_weights))
-max_index = num_servers.index(max(server_weights))
+min_index = server_weights.index(min(server_weights))
+max_index = server_weights.index(max(server_weights))
 mid_index = list(set([0,1,2]) - set([min_index,max_index]))[0]
 # For sure max_index would be significantly  more than 0.1 of the data, we prioritize the smaller weights getting the ceiling values.
-if num_segments < 5:     
+if num_segments < 5 and BALANCED:     
   num_servers[min_index] = 1 # Additional handling for the case when there are less than 5 segments to send, since simply using ceiling
   num_servers[mid_index] = 1 # could cause the max_index to get nothing. Note that when less than 10 segments, weights may be off.
 num_servers[max_index] = num_segments - num_servers[mid_index] - num_servers[min_index]
@@ -171,7 +171,7 @@ for i in range(num_segments):
     payload = f.read(rem)
   else:
     payload = f.read(payload_size)
-  segments_array[i] = payload 
+  segments_array[i] = create_segment(TID,i,payload) 
 f.close
 udp_socket_o.settimeout(3.0) # this sets the 3s timeout for any message.
 # send each of the segments
